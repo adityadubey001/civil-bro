@@ -21,7 +21,7 @@ from src.models.outputs import DesignStatus
 
 st.set_page_config(
     page_title="IRC 112 Bridge Girder Designer",
-    page_icon="Bridge",
+    page_icon="website-icon.png",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
