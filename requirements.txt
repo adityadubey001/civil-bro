@@ -1,0 +1,24 @@
+# Core Framework
+streamlit>=1.28.0
+
+# Data Validation
+pydantic>=2.0.0
+
+# Numerical Computing
+numpy>=1.24.0
+
+# Data Processing & Excel
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Diagrams and Visualization
+matplotlib>=3.7.0
+
+# PDF Generation
+reportlab>=4.0.0
+
+# Templating (for reports)
+jinja2>=3.1.0
+
+# Configuration
+pyyaml>=6.0.0
