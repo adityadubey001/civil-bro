@@ -363,7 +363,7 @@ def render_results():
             st.metric(
                 "Quasi-Permanent Moment",
                 f"{result.sls_stress.qp_moment:.0f} kNm",
-                delta="Mdl + 0.3×Mll"
+                delta="Mdl only (ψ2=0)"
             )
 
     # Crack Width Check
@@ -444,10 +444,10 @@ def render_results():
 
         if result.sls_stress.qp_moment is not None:
             st.markdown("---")
-            st.markdown("##### Quasi-Permanent Combination (Mdl + 0.3×Mll)")
-            st.markdown(f"**QP Moment:** {result.sls_stress.qp_moment:.0f} kNm")
+            st.markdown("##### Quasi-Permanent Combination (Mdl only, ψ2=0 per Table B.3)")
+            st.markdown(f"**QP Moment:** {result.sls_stress.qp_moment:.0f} kNm (dead load only)")
             st.markdown(f"**Concrete Stress (QP):** {result.sls_stress.qp_concrete_stress:.2f} MPa ≤ {result.sls_stress.qp_concrete_stress_limit:.2f} MPa (0.36×fck)")
-            st.markdown("*Note: Limit 0.36×fck is to avoid non-linear creep per IRC 112 Cl. 12.2.1(3)*")
+            st.markdown("*Note: ψ2=0 for traffic per IRC 112 Table B.3. Limit 0.36×fck to avoid non-linear creep per Cl. 12.2.1(3)*")
 
         if result.crack_width is not None:
             st.markdown("---")

@@ -132,14 +132,14 @@ class ServiceabilityChecker:
         flange_width: float = None,  # bf for T-beam
         flange_depth: float = None,  # Df for T-beam
         dead_load_moment: float = None,  # Mdl for quasi-permanent check
-        psi2: float = 0.3,  # Quasi-permanent factor for traffic (IRC 112 Table B.2)
+        psi2: float = 0.0,  # Quasi-permanent factor for traffic (IRC 112 Table B.3: ψ2 = 0)
     ) -> SLSStressResult:
         """
         Check SLS stresses per IRC 112 Cl. 12.2.1.
 
         Checks:
         1. Rare combination (Mdl + Mll): σc ≤ 0.48×fck, σs ≤ 0.8×fy
-        2. Quasi-permanent (Mdl + ψ2×Mll): σc ≤ 0.36×fck (to avoid creep)
+        2. Quasi-permanent (Mdl only, ψ2=0 per Table B.3): σc ≤ 0.36×fck (to avoid creep)
 
         Args:
             service_moment: Rare combination moment Ms = Mdl + Mll (kNm)
@@ -153,7 +153,7 @@ class ServiceabilityChecker:
             flange_width: Effective flange width for T-beam (mm)
             flange_depth: Flange depth for T-beam (mm)
             dead_load_moment: Dead load moment for QP calculation (kNm)
-            psi2: Quasi-permanent factor (0.3 for traffic per IRC 112)
+            psi2: Quasi-permanent factor (0.0 for traffic per IRC 112 Table B.3)
 
         Returns:
             SLSStressResult with stress check details
@@ -299,13 +299,14 @@ class ServiceabilityChecker:
         step_num += 1
 
         # Step 5: Quasi-permanent stress check (to avoid non-linear creep)
-        # M_qp = Mdl + ψ2 × Mll where ψ2 = 0.3 for traffic
+        # M_qp = Mdl + ψ2 × Mll where ψ2 = 0 for traffic (IRC 112 Table B.3)
+        # This means M_qp = Mdl (dead load only, no traffic contribution)
         if dead_load_moment is not None:
             Mll = Ms - dead_load_moment
-            M_qp = dead_load_moment + psi2 * Mll
+            M_qp = dead_load_moment + psi2 * Mll  # With psi2=0, M_qp = Mdl
         else:
             # Approximate: assume DL = 40% of total service moment
-            M_qp = 0.4 * Ms + psi2 * 0.6 * Ms
+            M_qp = 0.4 * Ms + psi2 * 0.6 * Ms  # With psi2=0, M_qp = 0.4*Ms
 
         M_qp_Nmm = M_qp * 1e6
         sigma_c_qp = M_qp_Nmm * x / Icr
@@ -315,11 +316,11 @@ class ServiceabilityChecker:
         steps.append(CalculationStep(
             step_number=step_num,
             description="Quasi-permanent moment",
-            formula="M_qp = Mdl + ψ2×Mll (ψ2=0.3)",
-            substitution=f"M_qp = {M_qp:.1f} kNm",
+            formula="M_qp = Mdl + ψ2×Mll (ψ2=0 per Table B.3)",
+            substitution=f"M_qp = Mdl = {M_qp:.1f} kNm",
             result=round(M_qp, 1),
             unit="kNm",
-            code_reference="IRC 112:2020, Table B.2"
+            code_reference="IRC 112:2020, Table B.3"
         ))
         step_num += 1
 
