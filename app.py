@@ -18,6 +18,7 @@ from src.models.inputs import (
 )
 from src.core.beam_design import BridgeGirderDesignEngine
 from src.models.outputs import DesignStatus
+from src.reports.pdf_generator import PDFReportGenerator
 
 st.set_page_config(
     page_title="IRC 112 Bridge Girder Designer",
@@ -233,6 +234,68 @@ def render_results():
         st.warning("DESIGN OK WITH WARNINGS")
     else:
         st.error("DESIGN INADEQUATE")
+
+    # PDF Report Download Section
+    with st.expander("Download Design Report", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            project_name = st.text_input(
+                "Project Name",
+                value="Bridge Girder Design",
+                key="report_project_name"
+            )
+        with col2:
+            engineer_name = st.text_input(
+                "Engineer Name (optional)",
+                value="",
+                key="report_engineer_name"
+            )
+
+        include_diagrams = st.checkbox("Include reinforcement diagrams", value=True)
+
+        if st.button("Generate PDF Report", type="primary"):
+            with st.spinner("Generating PDF report..."):
+                try:
+                    # Reconstruct inputs from session state
+                    deck = DeckInput(
+                        width=st.session_state.deck_width,
+                        thickness=st.session_state.deck_thickness,
+                        wearing_coat=st.session_state.wearing_coat,
+                    )
+                    inputs = BridgeGirderInput(
+                        span_length=st.session_state.span_length,
+                        deck=deck,
+                        num_girders=2,
+                        girder_type=GirderType.RECTANGULAR,
+                        concrete_grade=ConcreteGrade(st.session_state.concrete_grade),
+                        steel_grade=SteelGrade(st.session_state.steel_grade),
+                        live_load_type=LiveLoadType.CLASS_70R_WHEELED,
+                        exposure_condition=ExposureCondition.MODERATE,
+                        reinforcement_preference=ReinforcementPreference.ALLOW_DOUBLY,
+                        preferred_bar_sizes=[20, 25, 32],
+                        preferred_stirrup_size=12,
+                    )
+
+                    generator = PDFReportGenerator()
+                    pdf_bytes = generator.generate_report(
+                        inputs=inputs,
+                        outputs=result,
+                        project_name=project_name,
+                        engineer_name=engineer_name if engineer_name else None,
+                        include_diagrams=include_diagrams,
+                    )
+
+                    st.download_button(
+                        label="📥 Download PDF",
+                        data=pdf_bytes,
+                        file_name=f"{project_name.replace(' ', '_')}_Design_Report.pdf",
+                        mime="application/pdf",
+                    )
+                    st.success("PDF generated! Click the button above to download.")
+                except Exception as e:
+                    st.error(f"Failed to generate report: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
     st.markdown("## Design Results")
 
