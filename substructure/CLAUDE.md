@@ -119,10 +119,19 @@ YAML config dict
 7. **Modules not implemented** — bearing_design, STM, fatigue, construction stage, ancillary (pedestal/AD block).
 8. **Wizard bearing coordinates** — currently fixed at 4 bearings per side. Could add +/- buttons to dynamically add/remove bearings.
 
+## Deployment
+
+**GitHub**: https://github.com/adityadubey001/civil-bro
+**Streamlit Cloud**: Deployed at `substructure/app.py` (separate from beam design app at root `app.py`)
+
+To deploy updates:
+1. Push changes to the `civil-bro` repo
+2. Streamlit Cloud auto-redeploys from `main` branch
+
 ## Key Decisions Made
 
-1. **Standalone project** — not inside beam-design repo. Independent deployment.
-2. **Engine copied, not rewritten** — `src/substructure/` is a direct copy from the handoff package. No engine code was modified. The UI layer (`src/ui/`) is entirely new.
+1. **Hosted in civil-bro repo** — substructure app lives in `substructure/` subfolder alongside the beam design app.
+2. **Engine modified for IRC compliance** — fywd shear fix applied to `pier_cap_design.py`.
 3. **No Pydantic models** — the engine uses plain dataclasses and dicts (not Pydantic like the beam app). The config is a plain dict matching the YAML structure.
 4. **PDF report deferred** — focus was on interactive UI first. The CLI's report.py can be wired up later.
 5. **Two input modes** — YAML upload for power users, wizard for guided input. Both produce the same config dict and use the same runner.
@@ -139,3 +148,21 @@ YAML config dict
 
 For detailed formulas, five major fixes, exact IRC code references, and complete Excel comparison, read:
 `/Users/adityadubey/Documents/substructure-design-handoff/HANDOFF.md`
+
+---
+
+## Session Summary (2026-02-08)
+
+### Completed This Session
+1. **Deployed to Streamlit Cloud** via civil-bro repo (`substructure/app.py`)
+2. **Fixed fywd shear design** — now uses 400 MPa per IRC 112 (was 478 MPa). Shear util: 0.776 → 0.928
+3. **Added validation tests** — 15 pytest tests in `tests/test_design_validation.py`
+4. **Added per-bearing reactions** — optional `reactions_uls`/`reactions_sls` in YAML bearings section
+
+### Remaining Work
+| # | Item | Notes |
+|---|------|-------|
+| 1 | PDF report | Wire up download button to `report.generate_report()` |
+| 5 | Cost 12% high | Conservative steel quantities |
+| 7 | Missing modules | bearing_design, STM, fatigue, etc. |
+| 8 | Wizard dynamic bearings | Add +/- buttons for bearing count |
