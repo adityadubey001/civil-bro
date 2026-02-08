@@ -737,49 +737,69 @@ def _extract_pier_cap_forces(
     gov_uls = combinations.governing_uls_basic
     gov_sls = combinations.governing_sls_quasi
 
-    # Per-bearing vertical reaction under ULS.
-    # The total vertical load P at pier base includes DL + SIDL + LL + ...
-    # For the pier cap design we need the *bearing reactions* only (loads
-    # transmitted from the superstructure).  Approximate these as:
-    #   R_per_bearing = (P_total - self_weight_pier - self_weight_piercap) / n_bearings
-    # where P_total is from the governing combination.
-
     n_brg_total = (len(geometry.bearing_coords_lhs)
                    + len(geometry.bearing_coords_rhs))
     if n_brg_total == 0:
         n_brg_total = 1  # safety
 
-    # Pier and piercap self-weight (unfactored) for subtraction
-    wt_piercap_kN = geometry.piercap_section.width * geometry.piercap_section.depth * pcap_length_m * density
-    # Actually piercap_section stores width in m and depth in m already
-    # from geometry module:  area = width_long * depth_max, so:
-    wt_piercap_kN = (geometry.piercap_section.area  # m2
-                     * pcap_length_m * density)  # area is width*depth, need *length
+    # Check if user provided per-bearing reactions (from FE analysis)
+    brg_cfg = config.get("bearings", {})
+    user_reactions_uls = brg_cfg.get("reactions_uls", None)
+    user_reactions_sls = brg_cfg.get("reactions_sls", None)
 
-    # Correction: piercap_section.area = width_long * depth_max (cross-section area).
-    # Weight = area * length_trans * density -- but that double-counts.
-    # Actually area in PierCapSection is width_long * depth_max, which is the
-    # cross-section area when looking along the transverse axis.
-    # Weight = cross_section_area * length_trans * density
-    # But that assumes constant depth.  Use the average depth for trapezoidal:
-    wt_piercap_kN = pcap_width_m * avg_depth_m * pcap_length_m * density
+    # Build per-bearing reaction lists (order: lhs bearings then rhs bearings)
+    all_bearing_coords = geometry.bearing_coords_lhs + geometry.bearing_coords_rhs
 
-    pier_area_m2 = geometry.pier_section.area
-    pier_height_m = geometry.pier_height
-    wt_pier_kN = pier_area_m2 * pier_height_m * density
+    if user_reactions_uls and len(user_reactions_uls) == n_brg_total:
+        # Use user-provided per-bearing ULS reactions
+        per_bearing_reactions_uls = [float(r) for r in user_reactions_uls]
+    else:
+        # Back-calculate from pier base force (original approach)
+        # Pier and piercap self-weight (unfactored) for subtraction
+        wt_piercap_kN = pcap_width_m * avg_depth_m * pcap_length_m * density
+        pier_area_m2 = geometry.pier_section.area
+        pier_height_m = geometry.pier_height
+        wt_pier_kN = pier_area_m2 * pier_height_m * density
 
-    # ULS bearing reaction per bearing
-    P_uls_total = gov_uls.forces_pier_base.P
-    # Subtract pier and piercap self-weight (factored approx at gamma=1.35)
-    P_super_uls = P_uls_total - 1.35 * (wt_pier_kN + wt_piercap_kN)
-    P_super_uls = max(P_super_uls, 0.0)
-    R_per_bearing_uls = P_super_uls / n_brg_total
+        # ULS bearing reaction per bearing
+        P_uls_total = gov_uls.forces_pier_base.P
+        # Subtract pier and piercap self-weight (factored approx at gamma=1.35)
+        P_super_uls = P_uls_total - 1.35 * (wt_pier_kN + wt_piercap_kN)
+        P_super_uls = max(P_super_uls, 0.0)
+        R_per_bearing_uls = P_super_uls / n_brg_total
+        per_bearing_reactions_uls = [R_per_bearing_uls] * n_brg_total
 
-    # SLS bearing reaction per bearing
-    P_sls_total = gov_sls.forces_pier_base.P
-    P_super_sls = P_sls_total - 1.0 * (wt_pier_kN + wt_piercap_kN)
-    P_super_sls = max(P_super_sls, 0.0)
-    R_per_bearing_sls = P_super_sls / n_brg_total
+    if user_reactions_sls and len(user_reactions_sls) == n_brg_total:
+        # Use user-provided per-bearing SLS reactions
+        per_bearing_reactions_sls = [float(r) for r in user_reactions_sls]
+    else:
+        # Back-calculate from pier base force
+        wt_piercap_kN = pcap_width_m * avg_depth_m * pcap_length_m * density
+        pier_area_m2 = geometry.pier_section.area
+        pier_height_m = geometry.pier_height
+        wt_pier_kN = pier_area_m2 * pier_height_m * density
+
+        P_sls_total = gov_sls.forces_pier_base.P
+        P_super_sls = P_sls_total - 1.0 * (wt_pier_kN + wt_piercap_kN)
+        P_super_sls = max(P_super_sls, 0.0)
+        R_per_bearing_sls = P_super_sls / n_brg_total
+        per_bearing_reactions_sls = [R_per_bearing_sls] * n_brg_total
+
+    # Build mapping: transverse position -> total reaction at that position
+    # Group bearings by their transverse (y) coordinate on the cantilever
+    reactions_by_y_uls: dict[float, float] = {}
+    reactions_by_y_sls: dict[float, float] = {}
+    for i, coord in enumerate(all_bearing_coords):
+        y = coord[1]
+        if y > 0.001:  # positive cantilever side only
+            y_rounded = round(y, 3)
+            if y_rounded > pier_face_offset_m - 0.001:
+                reactions_by_y_uls[y_rounded] = (
+                    reactions_by_y_uls.get(y_rounded, 0.0) + per_bearing_reactions_uls[i]
+                )
+                reactions_by_y_sls[y_rounded] = (
+                    reactions_by_y_sls.get(y_rounded, 0.0) + per_bearing_reactions_sls[i]
+                )
 
     # -- Number of bearings per cantilever side --
     # Bearings are placed symmetrically.  Count bearings on one transverse
@@ -788,35 +808,17 @@ def _extract_pier_cap_forces(
     # are on the cantilever.  Each unique |y| position typically has two
     # bearings (one LHS-of-pier, one RHS-of-pier in the longitudinal sense)
     # but they all load the *same* transverse cantilever.
-    # Count bearings on ONE cantilever side only (positive y).
-    # Bearings at +y and -y are on opposite cantilever sides; using abs(y)
-    # would double-count.  We pick bearings with y > 0 (one side).
-    n_brg_per_cant_side: dict[float, int] = {}
-    for coord in geometry.bearing_coords_lhs + geometry.bearing_coords_rhs:
-        y = coord[1]
-        if y > 0.001:  # positive cantilever side only
-            y_rounded = round(y, 3)
-            if y_rounded > pier_face_offset_m - 0.001:
-                n_brg_per_cant_side[y_rounded] = (
-                    n_brg_per_cant_side.get(y_rounded, 0) + 1
-                )
-
     # -- Moment and shear at pier face (ULS) --
     # M_pier = sum(R_i * e_i) + sw_moment
     # where e_i = distance of bearing from pier face, R_i = reaction at that bearing
     Mu_bearings_pier = 0.0
     VEd_bearings_pier = 0.0
 
-    for y_abs_round, count in n_brg_per_cant_side.items():
+    for y_abs_round, R_total_at_y in reactions_by_y_uls.items():
         e_m = y_abs_round - pier_face_offset_m
         if e_m < 0.0:
             continue
-        R_total_at_y = count * R_per_bearing_uls  # total reaction at this y-row
-        # This acts on *one* cantilever side (we design one cantilever).
-        # Each side of the pier has bearings; the count already includes both
-        # longitudinal rows for this transverse position.
-        # However, for the transverse cantilever, both LHS and RHS bearings
-        # at the same |y| contribute to the *same* cantilever.
+        # R_total_at_y is the sum of reactions at this transverse position
         Mu_bearings_pier += R_total_at_y * e_m  # kN * m = kN.m
         VEd_bearings_pier += R_total_at_y       # kN
 
@@ -833,14 +835,13 @@ def _extract_pier_cap_forces(
     Mu_bearings_curt = 0.0
     VEd_bearings_curt = 0.0
 
-    for y_abs_round, count in n_brg_per_cant_side.items():
+    for y_abs_round, R_total_at_y in reactions_by_y_uls.items():
         e_from_face_m = y_abs_round - pier_face_offset_m
         if e_from_face_m < 0.0:
             continue
         e_from_curt_m = e_from_face_m - curt_dist_m
         if e_from_curt_m < 0.0:
             continue
-        R_total_at_y = count * R_per_bearing_uls
         Mu_bearings_curt += R_total_at_y * e_from_curt_m
         VEd_bearings_curt += R_total_at_y
 
@@ -857,12 +858,11 @@ def _extract_pier_cap_forces(
 
     # -- SLS moment at pier face (for crack width) --
     M_sls_bearings_pier = 0.0
-    for y_abs_round, count in n_brg_per_cant_side.items():
+    for y_abs_round, R_total_at_y in reactions_by_y_sls.items():
         e_m = y_abs_round - pier_face_offset_m
         if e_m < 0.0:
             continue
-        R_sls = count * R_per_bearing_sls
-        M_sls_bearings_pier += R_sls * e_m
+        M_sls_bearings_pier += R_total_at_y * e_m
 
     sw_M_pier_sls = 1.0 * sw_udl_kN_per_m * L_cant_m ** 2 / 2.0
     M_sls_pier = M_sls_bearings_pier + sw_M_pier_sls

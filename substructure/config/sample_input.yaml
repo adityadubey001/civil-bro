@@ -70,6 +70,12 @@ bearings:
   pedestal_length: 0.8          # m
   pedestal_width: 0.8           # m
   pedestal_beyond: 0.2          # m - Portion beyond pedestal
+  # Optional: Per-bearing reactions from FE analysis (kN)
+  # If provided, these override the back-calculated reactions for pier cap design.
+  # Order must match: coordinates_lhs first, then coordinates_rhs (8 values total).
+  # Omit or set to empty [] to use auto back-calculation from pier base forces.
+  # reactions_uls: [1800, 1700, 1700, 1800, 1800, 1700, 1700, 1800]  # ULS factored
+  # reactions_sls: [1200, 1150, 1150, 1200, 1200, 1150, 1150, 1200]  # SLS quasi-permanent
 
 levels:
   frl: 315.685                  # m - Finished Road Level
