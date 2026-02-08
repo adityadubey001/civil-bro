@@ -398,7 +398,7 @@ def _shear_reinforcement(
     VRdc_N: float,
     fck: float,
     fyk: float,
-    fyd: float,
+    fywd: float,
     bw: float,
     d: float,
 ) -> tuple[float, float, float, float]:
@@ -414,8 +414,9 @@ def _shear_reinforcement(
         Characteristic concrete strength (MPa).
     fyk : float
         Characteristic steel yield strength (MPa).
-    fyd : float
-        Design steel yield strength (MPa).
+    fywd : float
+        Design yield strength for shear reinforcement (MPa).
+        Per IRC 112: fywd = 0.8 * min(fyk, 500).
     bw : float
         Web width (mm).
     d : float
@@ -449,9 +450,9 @@ def _shear_reinforcement(
         tan_theta = 1.0
         VRd_max_N = bw * z * nu * fcd / (cot_theta + tan_theta)
 
-    # Required Asw/s from VRd,s = (Asw/s) * z * fyd * cot(theta)
+    # Required Asw/s from VRd,s = (Asw/s) * z * fywd * cot(theta)
     if VEd_N > VRdc_N:
-        Asw_s_reqd = VEd_N / (z * fyd * cot_theta)
+        Asw_s_reqd = VEd_N / (z * fywd * cot_theta)
     else:
         Asw_s_reqd = 0.0
 
@@ -462,7 +463,7 @@ def _shear_reinforcement(
     Asw_s_reqd = max(Asw_s_reqd, Asw_s_min)
 
     # Capacity provided (at governing Asw/s)
-    VRds_N = Asw_s_reqd * z * fyd * cot_theta
+    VRds_N = Asw_s_reqd * z * fywd * cot_theta
 
     return Asw_s_reqd, Asw_s_min, VRds_N, VRd_max_N
 
@@ -1069,11 +1070,13 @@ def design_pier_cap(
     shear_reinf_reqd = VEd_gov_N > VRdc_gov_N
 
     fyd_MPa = steel.fyd  # already in MPa from get_steel_properties
+    # IRC 112: fywd = 0.8 * fywk, where fywk = min(fyk, 500) for shear reinforcement
+    fywd_MPa = 0.8 * min(fyk, 500.0)
 
     if shear_reinf_reqd:
         Asw_s_reqd, Asw_s_min, VRds_N, VRd_max_N = _shear_reinforcement(
             VEd_gov_N, VRdc_gov_N,
-            fck, fyk, fyd_MPa, width_mm, d_eff_pier,
+            fck, fyk, fywd_MPa, width_mm, d_eff_pier,
         )
     else:
         # Still provide minimum shear reinforcement
@@ -1081,7 +1084,7 @@ def design_pier_cap(
         Asw_s_reqd = Asw_s_min
         z = 0.9 * d_eff_pier
         cot_theta = 2.5
-        VRds_N = Asw_s_min * z * fyd_MPa * cot_theta
+        VRds_N = Asw_s_min * z * fywd_MPa * cot_theta
         nu = 0.6 * (1.0 - fck / 310.0)
         fcd_val = 0.67 * fck / 1.5
         VRd_max_N = width_mm * z * nu * fcd_val / (cot_theta + 1.0 / cot_theta)
@@ -1093,7 +1096,7 @@ def design_pier_cap(
     # Recalculate VRds with provided stirrups
     z = 0.9 * d_eff_pier
     cot_theta = 2.5
-    VRds_prov_N = Asw_s_prov * z * fyd_MPa * cot_theta
+    VRds_prov_N = Asw_s_prov * z * fywd_MPa * cot_theta
 
     shear_capacity_N = max(VRdc_pier_N, VRds_prov_N) if shear_reinf_reqd else VRdc_pier_N
     shear_util = VEd_gov_N / shear_capacity_N if shear_capacity_N > 0 else 999.0
