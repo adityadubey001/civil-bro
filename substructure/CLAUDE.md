@@ -112,7 +112,7 @@ YAML config dict
 
 1. **PDF report not wired up** — `src/substructure/report.py` exists and works (CLI uses it), but the Streamlit app doesn't expose it yet. Next step: add a download button on the results page that calls `report.generate_report()`.
 2. ~~**No tests**~~ — **FIXED**: `tests/` directory with 15 pytest validation tests.
-3. **Pier cap VEd 25% lower than Excel** — we back-calculate bearing reactions from total pier base force. Fix: accept optional per-bearing reactions in YAML.
+3. ~~**Pier cap VEd 25% lower than Excel**~~ — **FIXED**: Added optional `reactions_uls` and `reactions_sls` in bearings section. Users can now provide per-bearing reactions from FE analysis.
 4. **Pier biaxial util 0.884 vs Excel 0.658** — hand-calc wind forces are larger than Excel's SOFiSTiK FE-computed forces. Not fixable without FE analysis.
 5. **Cost 12% high** — conservative steel quantities from iterative crack width control, punching reinforcement, auto-sized spiral.
 6. ~~**fywd for shear design**~~ — **FIXED**: Now uses `fywd = 0.8 * min(fyk, 500)` = 400 MPa per IRC 112. Shear util: 0.776 → 0.928.
