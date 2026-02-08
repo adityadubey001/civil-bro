@@ -6,8 +6,17 @@ Renders the design dashboard and detail tabs after a design run completes.
 from __future__ import annotations
 
 import streamlit as st
+import matplotlib.pyplot as plt
 
 from ui.runner import safe_attr, get_status, all_checks_ok
+from ui.diagrams import (
+    draw_pier_cap_elevation,
+    draw_pier_section,
+    draw_pile_section,
+    draw_pm_diagram,
+    draw_pile_arrangement,
+    draw_pilecap_punching,
+)
 
 
 # ── Formatting helpers ───────────────────────────────────────────────────────
@@ -64,6 +73,9 @@ def render_results(results: dict) -> None:
     for w in results.get("warnings", []):
         st.warning(w)
 
+    # ── PDF Report Download ───────────────────────────────────────────────
+    _render_pdf_download(results)
+
     # ── Dashboard metrics ────────────────────────────────────────────────
     _render_dashboard(results)
 
@@ -71,6 +83,38 @@ def render_results(results: dict) -> None:
 
     # ── Detail tabs ──────────────────────────────────────────────────────
     _render_detail_tabs(results)
+
+
+# ── PDF Download ──────────────────────────────────────────────────────────────
+
+def _render_pdf_download(results: dict) -> None:
+    """Render PDF report download section."""
+    config = st.session_state.get("config")
+    if config is None:
+        return
+
+    with st.expander("Download Design Report"):
+        project = config.get("project", {})
+        proj_name = project.get("name", "Substructure_Report")
+
+        if st.button("Generate PDF Report", type="primary"):
+            with st.spinner("Generating PDF report..."):
+                try:
+                    from substructure.report import generate_report_bytes
+                    pdf_bytes = generate_report_bytes(config, results)
+                    st.session_state["_pdf_bytes"] = pdf_bytes
+                    st.session_state["_pdf_name"] = proj_name
+                except Exception as e:
+                    st.error(f"PDF generation failed: {e}")
+
+        if st.session_state.get("_pdf_bytes"):
+            name = st.session_state.get("_pdf_name", "report")
+            st.download_button(
+                label="Download PDF",
+                data=st.session_state["_pdf_bytes"],
+                file_name=f"{name.replace(' ', '_')}_Design_Report.pdf",
+                mime="application/pdf",
+            )
 
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
@@ -229,6 +273,17 @@ def _render_pier_cap_tab(results: dict) -> None:
               delta="OK" if safe_attr(pc, "crack_width", 999) <= safe_attr(pc, "crack_width_limit", 0.3) else "FAIL",
               delta_color="normal" if safe_attr(pc, "crack_width", 999) <= safe_attr(pc, "crack_width_limit", 0.3) else "inverse")
 
+    # ── Diagram: Pier Cap Elevation ──
+    geom = results.get("geometry")
+    if geom is not None:
+        st.markdown("#### Tapered Elevation")
+        try:
+            fig = draw_pier_cap_elevation(pc, geom)
+            st.pyplot(fig)
+            plt.close(fig)
+        except Exception as e:
+            st.warning(f"Pier cap diagram error: {e}")
+
 
 # ── Pier tab ─────────────────────────────────────────────────────────────────
 
@@ -278,6 +333,31 @@ def _render_pier_tab(results: dict) -> None:
     c2.metric("Spiral Spacing", _fnum(safe_attr(pier, "spiral_spacing"), 0, "mm"))
     c3.metric("\u03c9_wd Provided", _fnum(safe_attr(pier, "omega_wd"), 3))
 
+    # ── Diagrams: Pier Cross-Section & P-M Interaction ──
+    st.markdown("#### Engineering Diagrams")
+    d1, d2 = st.columns(2)
+    with d1:
+        try:
+            fig = draw_pier_section(pier)
+            st.pyplot(fig)
+            plt.close(fig)
+        except Exception as e:
+            st.warning(f"Diagram error: {e}")
+    with d2:
+        interaction_xx = safe_attr(pier, "interaction_xx")
+        if interaction_xx is not None:
+            try:
+                fig = draw_pm_diagram(
+                    interaction_xx,
+                    safe_attr(pier, "P_applied", 0),
+                    safe_attr(pier, "ML_with_2nd_order", 0),
+                    "P-M Interaction (Longitudinal)",
+                )
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception:
+                pass
+
 
 # ── Piles tab ────────────────────────────────────────────────────────────────
 
@@ -317,6 +397,42 @@ def _render_piles_tab(results: dict) -> None:
     else:
         st.info("Pile structural design was not computed.")
 
+    # ── Diagrams: Pile Arrangement, Pile Section, Pile P-M ──
+    geom = results.get("geometry")
+    st.markdown("#### Engineering Diagrams")
+    d1, d2 = st.columns(2)
+    with d1:
+        if geom is not None:
+            try:
+                fig = draw_pile_arrangement(geom)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception:
+                pass
+    with d2:
+        if pile_d is not None:
+            try:
+                fig = draw_pile_section(pile_d)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception:
+                pass
+
+    if pile_d is not None:
+        interaction = safe_attr(pile_d, "interaction")
+        if interaction is not None:
+            try:
+                fig = draw_pm_diagram(
+                    interaction,
+                    safe_attr(pile_d, "P_applied", 0),
+                    safe_attr(pile_d, "M_applied", 0),
+                    "Pile P-M Interaction",
+                )
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception:
+                pass
+
 
 # ── Pile Cap tab ─────────────────────────────────────────────────────────────
 
@@ -351,6 +467,17 @@ def _render_pilecap_tab(results: dict) -> None:
     c1, c2 = st.columns(2)
     c1.metric("Crack Width (w_k)", _fnum(safe_attr(pc, "crack_width"), 3, "mm"))
     c2.metric("Limit", _fnum(safe_attr(pc, "crack_width_limit"), 1, "mm"))
+
+    # ── Diagram: Pile Cap Punching Perimeters ──
+    geom = results.get("geometry")
+    if geom is not None:
+        st.markdown("#### Punching Shear Perimeters")
+        try:
+            fig = draw_pilecap_punching(pc, geom)
+            st.pyplot(fig)
+            plt.close(fig)
+        except Exception as e:
+            st.warning(f"Diagram error: {e}")
 
 
 # ── Loads tab ────────────────────────────────────────────────────────────────
