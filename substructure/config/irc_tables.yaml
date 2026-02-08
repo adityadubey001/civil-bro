@@ -1,0 +1,291 @@
+# IRC 112:2020 & IRC 6:2017 Design Tables
+# ==========================================
+
+# --- IRC 112 Table 6.4: Concrete Properties ---
+# Indexed by fck (MPa)
+concrete_properties:
+  20:
+    fcm: 30        # Mean compressive strength (MPa)
+    fctm: 1.8      # Mean tensile strength (MPa)
+    fctk_005: 1.3   # 5% fractile tensile strength
+    fctk_095: 2.3   # 95% fractile tensile strength
+    Ecm: 27.0       # Elastic modulus (GPa)
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  25:
+    fcm: 35
+    fctm: 2.2
+    fctk_005: 1.5
+    fctk_095: 2.9
+    Ecm: 29.0
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  30:
+    fcm: 38
+    fctm: 2.5
+    fctk_005: 1.8
+    fctk_095: 3.2
+    Ecm: 30.5
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  35:
+    fcm: 45
+    fctm: 2.8
+    fctk_005: 2.0
+    fctk_095: 3.6
+    Ecm: 32.0
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  40:
+    fcm: 50
+    fctm: 3.0
+    fctk_005: 2.1
+    fctk_095: 3.9
+    Ecm: 33.0
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  45:
+    fcm: 55
+    fctm: 3.3
+    fctk_005: 2.3
+    fctk_095: 4.3
+    Ecm: 34.0
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  50:
+    fcm: 60
+    fctm: 3.5
+    fctk_005: 2.5
+    fctk_095: 4.5
+    Ecm: 35.0
+    epsilon_cu2: 0.0035
+    epsilon_cu3: 0.0035
+    n_parabolic: 2.0
+  55:
+    fcm: 63
+    fctm: 3.7
+    fctk_005: 2.6
+    fctk_095: 4.8
+    Ecm: 36.0
+    epsilon_cu2: 0.0031
+    epsilon_cu3: 0.0031
+    n_parabolic: 1.75
+  60:
+    fcm: 68
+    fctm: 3.9
+    fctk_005: 2.7
+    fctk_095: 5.1
+    Ecm: 37.0
+    epsilon_cu2: 0.0029
+    epsilon_cu3: 0.0029
+    n_parabolic: 1.6
+  65:
+    fcm: 73
+    fctm: 4.1
+    fctk_005: 2.9
+    fctk_095: 5.3
+    Ecm: 38.0
+    epsilon_cu2: 0.0027
+    epsilon_cu3: 0.0027
+    n_parabolic: 1.45
+  70:
+    fcm: 78
+    fctm: 4.3
+    fctk_005: 3.0
+    fctk_095: 5.5
+    Ecm: 39.0
+    epsilon_cu2: 0.0027
+    epsilon_cu3: 0.0027
+    n_parabolic: 1.4
+  75:
+    fcm: 83
+    fctm: 4.5
+    fctk_005: 3.2
+    fctk_095: 5.8
+    Ecm: 39.5
+    epsilon_cu2: 0.0026
+    epsilon_cu3: 0.0026
+    n_parabolic: 1.4
+  80:
+    fcm: 88
+    fctm: 4.6
+    fctk_005: 3.2
+    fctk_095: 6.0
+    Ecm: 40.0
+    epsilon_cu2: 0.0026
+    epsilon_cu3: 0.0026
+    n_parabolic: 1.4
+  90:
+    fcm: 98
+    fctm: 4.8
+    fctk_005: 3.4
+    fctk_095: 6.2
+    Ecm: 41.0
+    epsilon_cu2: 0.0026
+    epsilon_cu3: 0.0026
+    n_parabolic: 1.4
+
+# Aggregate correction factors for Ecm (IRC 112 Table 6.5)
+aggregate_factors:
+  Quartzite: 1.0
+  Granite: 1.0
+  Limestone: 0.9
+  Sandstone: 0.7
+  Basalt: 1.2
+
+# Partial safety factors (IRC 112)
+partial_safety_factors:
+  gamma_c: 1.5       # Concrete (ULS)
+  gamma_s: 1.15      # Steel (ULS)
+  alpha_cc: 0.67     # Coefficient for long-term effects on compressive strength
+
+# Exposure conditions - clear cover (mm) per IRC 112 Table 14.1
+cover_requirements:
+  Mild: 40
+  Moderate: 40
+  Severe: 45
+  Very Severe: 50
+  Extreme: 75
+
+# Crack width limits (mm)
+crack_width_limits:
+  Mild: 0.3
+  Moderate: 0.3
+  Severe: 0.3
+  Very Severe: 0.2
+  Extreme: 0.2
+
+# --- IRC 6:2017 Load Combination Factors ---
+# Table B.1: ULS Basic Combination
+# Format: [gamma_sup, gamma_inf] (favourable/unfavourable)
+# Load types: DL, SIDL, LL, Wind, Temp, Braking
+uls_basic:
+  DL: [1.35, 1.0]          # Dead load
+  SIDL_surfacing: [1.75, 1.0]  # Wearing coat
+  SIDL_permanent: [1.35, 1.0]  # Crash barriers, etc
+  LL_leading: [1.5, 0.0]
+  LL_accompanying: [1.15, 0.0]  # psi_0 * 1.5 (psi_0=0.75)
+  Wind_leading: [1.5, 0.0]
+  Wind_accompanying: [0.9, 0.0]  # psi_0 * 1.5 (psi_0=0.6)
+  Temp_leading: [1.5, 0.0]
+  Temp_accompanying: [0.9, 0.0]  # psi_0 * 1.5 (psi_0=0.6)
+  Braking: [1.15, 0.0]     # same as LL accompanying
+
+# Table B.1: ULS Seismic Combination
+uls_seismic:
+  DL: [1.35, 1.0]
+  SIDL_surfacing: [1.75, 1.0]
+  SIDL_permanent: [1.35, 1.0]
+  LL: [0.2, 0.0]           # psi_0 for seismic = 0.2
+  Seismic: [1.5, 0.0]
+  Braking: [0.0, 0.0]      # Not combined with seismic
+
+# Table B.2: SLS Rare (Characteristic) Combination
+sls_rare:
+  DL: [1.0, 1.0]
+  SIDL_surfacing: [1.2, 1.0]
+  SIDL_permanent: [1.0, 1.0]
+  LL_leading: [1.0, 0.0]
+  LL_accompanying: [0.75, 0.0]
+  Wind_leading: [1.0, 0.0]
+  Wind_accompanying: [0.6, 0.0]
+  Temp_leading: [1.0, 0.0]
+  Temp_accompanying: [0.6, 0.0]
+  Braking: [0.75, 0.0]
+
+# Table B.3: SLS Frequent Combination
+sls_frequent:
+  DL: [1.0, 1.0]
+  SIDL_surfacing: [1.2, 1.0]
+  SIDL_permanent: [1.0, 1.0]
+  LL: [0.75, 0.0]     # psi_1
+  Wind: [0.5, 0.0]    # psi_1
+  Temp: [0.5, 0.0]    # psi_1
+
+# Table B.4: SLS Quasi-Permanent Combination
+sls_quasi_permanent:
+  DL: [1.0, 1.0]
+  SIDL_surfacing: [1.2, 1.0]
+  SIDL_permanent: [1.0, 1.0]
+  LL: [0.0, 0.0]      # psi_2 = 0
+  Wind: [0.0, 0.0]    # psi_2 = 0
+  Temp: [0.5, 0.0]    # psi_2
+
+# --- IRC 6 Cl.204: Impact Factor ---
+# For Class 70R wheeled: IF = 4.5/(6+L) for L < 12m, else IF from table
+# For Class A: IF = 4.5/(6+L) for L < 12m
+impact_factor:
+  class_70R_wheeled:
+    formula: "4.5 / (6 + L)"  # L = loaded length in metres
+    max: 0.25
+  class_A:
+    formula: "4.5 / (6 + L)"
+    max: 0.545
+
+# --- IRC 6 Cl.211: Seismic Parameters ---
+seismic:
+  zone_factors:
+    II: 0.10
+    III: 0.16
+    IV: 0.24
+    V: 0.36
+  importance_factor:
+    normal: 1.0
+    important: 1.2
+  response_reduction:
+    ductile: 4.0
+    limited_ductile: 3.0
+    brittle: 1.0
+
+# --- IRC 6 Cl.209: Wind Load Parameters ---
+wind:
+  basic_wind_speed: 39.0  # m/s (default, varies by location)
+  # Drag coefficients for common shapes
+  drag_coefficients:
+    circular_pier:
+      smooth: 0.5
+      rough: 0.7
+    rectangular_pier:
+      b_d_2: 1.5   # b/d = 2
+      b_d_6: 1.3   # b/d >= 6
+    box_girder: 1.3
+    i_girder: 2.0
+    u_girder: 2.1
+    deck_slab: 1.1
+  # Hourly mean wind speed ratio Vz/Vb per IRC 6:2017 Table 5.
+  # Vb is the 3-second gust speed from IS 875 / IRC 6 Fig 10.
+  # Vz is the hourly mean wind speed at height z.
+  # Multiply by Vb to get Vz, then Pz = 0.6 * Vz^2 and apply G = 2.0.
+  # Values shown are for terrain category 2.
+  height_factor:
+    10: 0.566
+    15: 0.570
+    20: 0.585
+    30: 0.618
+    50: 0.644
+    100: 0.686
+
+# --- IRC 6 Cl.206: Braking Force ---
+braking:
+  class_70R:
+    percent_of_train_load: 20  # % for single lane
+  class_A:
+    percent_of_train_load: 20  # %
+  height_above_road: 1.2      # m (application height)
+  multilane_reduction:
+    1: 1.0
+    2: 1.0
+    3: 1.0
+
+# --- IRC 6 Cl.215: Temperature ---
+temperature:
+  # Uniform temperature range for moderate climate
+  rise: 30          # degrees C
+  fall: 20          # degrees C
+  coefficient: 0.000012  # per degree C (concrete)

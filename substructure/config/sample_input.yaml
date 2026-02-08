@@ -1,0 +1,134 @@
+# Substructure Design Input File
+# ================================
+# Fill in all values below. Comments show units and valid options.
+
+project:
+  name: "23B022-SDN-FO2"
+  pier_id: "P10"
+  designer: "Design Engineer"
+  checker: "Checker"
+  date: "2024-01-01"
+
+superstructure:
+  deck_width: 12.0              # m - Total width of deck
+  type: "U Girder"              # Options: U Girder | Box Girder | Slab | I Girder
+  left_span_cc_bearing: 58.35   # m - Left span c/c of bearings
+  right_span_cc_bearing: 58.35  # m - Right span c/c of bearings
+  num_girders: 2                # Number of girders per span
+  girder_spacing: 6.0           # m - C/C spacing of girders
+  cg_below_deck_top: 1.023      # m - CG of superstructure below deck top
+  depth_incl_slab: 3.23         # m - Depth of superstructure including deck slab
+  deck_slab_thickness: 0.25     # m
+  girder_flange_width: 0.3      # m - Width of top flange
+  girder_inertia: 3.245         # m4 - Moment of inertia about centroid
+  continuity: "Deck Continuity" # Options: Deck Continuity | Simply Supported
+  num_continuous_spans: 2
+  camber_superelevation: 2.5    # %
+  bearing_pedestal_depth: 0.5   # m
+  skew_angle: 0                 # degrees
+  radius_of_curvature: 2000     # m (use 0 for straight)
+  wearing_coat_thickness: 45    # mm
+  crash_barrier_width: 0.5      # m
+  median_barrier_width: 0       # m (0 if not applicable)
+  crash_barrier_height: 1.1     # m
+  noise_barrier_height: 1.5     # m
+  # Superstructure dead load reactions per bearing (kN)
+  # Set to 0 for auto-calculation from geometry
+  dl_reaction_lhs: 0
+  dl_reaction_rhs: 0
+  sidl_reaction_lhs: 0
+  sidl_reaction_rhs: 0
+
+pier:
+  type: "Circular"              # Options: Circular | Rectangular
+  diameter_bottom: 2.0          # m (or width_long for Rectangular)
+  diameter_top: 2.0             # m (or length_trans for Rectangular)
+  end_condition: "fixed-guided"  # Options: fixed-free | fixed-guided | fixed-fixed
+  n_bars: 90                    # Number of longitudinal bars
+  bar_dia: 20                   # mm - Bar diameter
+
+pier_cap:
+  width_long: 2.85              # m - Width in longitudinal (traffic) direction
+  length_trans: 9.2             # m - Length in transverse direction
+  depth_max: 1.75               # m - Depth at pier location
+  depth_min: 0.75               # m - Depth at far end (cantilever tip)
+  bearing_offset_long: 0.825    # m - Distance from pier center to bearing, longitudinal
+
+bearings:
+  type: "Elastomeric"
+  # Bearing coordinates relative to pier center [along_traffic, across_traffic]
+  coordinates_lhs:
+    - [-0.825, -3.7]
+    - [-0.825, -2.3]
+    - [-0.825,  2.3]
+    - [-0.825,  3.7]
+  coordinates_rhs:
+    - [ 0.825, -3.7]
+    - [ 0.825, -2.3]
+    - [ 0.825,  2.3]
+    - [ 0.825,  3.7]
+  pedestal_length: 0.8          # m
+  pedestal_width: 0.8           # m
+  pedestal_beyond: 0.2          # m - Portion beyond pedestal
+
+levels:
+  frl: 315.685                  # m - Finished Road Level
+  gl: 303.236                   # m - Ground Level
+  gwt: 303.236                  # m - Ground Water Table Level
+  hfl: 303.236                  # m - High Flood Level (= GL for land bridges)
+
+materials:
+  pier:
+    fck: 50                     # MPa
+    aggregate: "Quartzite"      # Options: Quartzite | Granite | Limestone | Sandstone | Basalt
+  pier_cap:
+    fck: 45
+    aggregate: "Quartzite"
+  pedestal:
+    fck: 45
+  pile_pilecap:
+    fck: 35
+  steel:
+    fyk: 550                    # MPa
+    Es: 200000                  # MPa
+  concrete_density: 25          # kN/m3
+  exposure: "Severe"            # Options: Mild | Moderate | Severe | Very Severe | Extreme
+  water_density: 10             # kN/m3
+
+creep:
+  age_of_loading: 7             # days
+  relative_humidity: 54.5       # %
+  design_life: 36500            # days (100 years)
+
+foundation:
+  pile_diameter: 1.0            # m
+  piles_long: 2                 # Number of piles in longitudinal direction
+  piles_trans: 2                # Number of piles in transverse direction
+  pile_spacing_factor: 3        # C/C spacing = factor * diameter
+  pilecap_edge_clearance: 150   # mm - From pile surface to edge of pile cap
+  pilecap_thickness: 1.8        # m
+  pilecap_top_below_gl: 500     # mm
+  total_pile_depth: 15.0        # m - From ground level to founding level
+  pile_capacity_top: 550        # tonnes - Safe bearing capacity at pile top
+  pile_uplift_capacity: -187    # tonnes - Uplift capacity (negative)
+  soil_density: 20              # kN/m3
+  friction_angle: 30            # degrees
+  subgrade_modulus: 1.4         # MN/m3 (modulus of subgrade reaction)
+  fixity_ratio: 2.3             # Lf/T (from IS:2911-2010 Fig 4)
+  cover: 75                     # mm - Clear cover for piles
+  pile_n_bars: 18                # Number of longitudinal bars per pile
+  pile_bar_dia: 22.6             # mm - Bar diameter (bundled bars)
+
+seismic:
+  zone: "IV"                    # Options: II | III | IV | V
+  importance_factor: 1.2
+  response_reduction: 4.0       # R factor
+  soil_type: "medium"           # Options: hard | medium | soft
+
+wind:
+  basic_speed: 44.0             # m/s - Basic wind speed (3-second gust, IS 875 / IRC 6 Fig 10)
+  terrain_category: 2           # 1 to 4
+
+boq:
+  concrete_rate: 8000           # INR/m3
+  steel_rate: 70000             # INR/tonne
