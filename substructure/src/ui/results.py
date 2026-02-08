@@ -6,17 +6,24 @@ Renders the design dashboard and detail tabs after a design run completes.
 from __future__ import annotations
 
 import streamlit as st
-import matplotlib.pyplot as plt
 
 from ui.runner import safe_attr, get_status, all_checks_ok
-from ui.diagrams import (
-    draw_pier_cap_elevation,
-    draw_pier_section,
-    draw_pile_section,
-    draw_pm_diagram,
-    draw_pile_arrangement,
-    draw_pilecap_punching,
-)
+
+# Diagram imports — guarded so that a matplotlib issue doesn't break the app
+_DIAGRAMS_AVAILABLE = False
+try:
+    import matplotlib.pyplot as plt
+    from ui.diagrams import (
+        draw_pier_cap_elevation,
+        draw_pier_section,
+        draw_pile_section,
+        draw_pm_diagram,
+        draw_pile_arrangement,
+        draw_pilecap_punching,
+    )
+    _DIAGRAMS_AVAILABLE = True
+except Exception as _diag_err:
+    _DIAG_IMPORT_ERROR = str(_diag_err)
 
 
 # ── Formatting helpers ───────────────────────────────────────────────────────
@@ -277,12 +284,15 @@ def _render_pier_cap_tab(results: dict) -> None:
     geom = results.get("geometry")
     if geom is not None:
         st.markdown("#### Tapered Elevation")
-        try:
-            fig = draw_pier_cap_elevation(pc, geom)
-            st.pyplot(fig)
-            plt.close(fig)
-        except Exception as e:
-            st.warning(f"Pier cap diagram error: {e}")
+        if not _DIAGRAMS_AVAILABLE:
+            st.warning(f"Diagrams unavailable: {_DIAG_IMPORT_ERROR}")
+        else:
+            try:
+                fig = draw_pier_cap_elevation(pc, geom)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception as e:
+                st.warning(f"Pier cap diagram error: {e}")
 
 
 # ── Pier tab ─────────────────────────────────────────────────────────────────
@@ -335,28 +345,31 @@ def _render_pier_tab(results: dict) -> None:
 
     # ── Diagrams: Pier Cross-Section & P-M Interaction ──
     st.markdown("#### Engineering Diagrams")
-    d1, d2 = st.columns(2)
-    with d1:
-        try:
-            fig = draw_pier_section(pier)
-            st.pyplot(fig)
-            plt.close(fig)
-        except Exception as e:
-            st.warning(f"Diagram error: {e}")
-    with d2:
-        interaction_xx = safe_attr(pier, "interaction_xx")
-        if interaction_xx is not None:
+    if not _DIAGRAMS_AVAILABLE:
+        st.warning(f"Diagrams unavailable: {_DIAG_IMPORT_ERROR}")
+    else:
+        d1, d2 = st.columns(2)
+        with d1:
             try:
-                fig = draw_pm_diagram(
-                    interaction_xx,
-                    safe_attr(pier, "P_applied", 0),
-                    safe_attr(pier, "ML_with_2nd_order", 0),
-                    "P-M Interaction (Longitudinal)",
-                )
+                fig = draw_pier_section(pier)
                 st.pyplot(fig)
                 plt.close(fig)
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Diagram error: {e}")
+        with d2:
+            interaction_xx = safe_attr(pier, "interaction_xx")
+            if interaction_xx is not None:
+                try:
+                    fig = draw_pm_diagram(
+                        interaction_xx,
+                        safe_attr(pier, "P_applied", 0),
+                        safe_attr(pier, "ML_with_2nd_order", 0),
+                        "P-M Interaction (Longitudinal)",
+                    )
+                    st.pyplot(fig)
+                    plt.close(fig)
+                except Exception as e:
+                    st.warning(f"Diagram error: {e}")
 
 
 # ── Piles tab ────────────────────────────────────────────────────────────────
@@ -400,38 +413,41 @@ def _render_piles_tab(results: dict) -> None:
     # ── Diagrams: Pile Arrangement, Pile Section, Pile P-M ──
     geom = results.get("geometry")
     st.markdown("#### Engineering Diagrams")
-    d1, d2 = st.columns(2)
-    with d1:
-        if geom is not None:
-            try:
-                fig = draw_pile_arrangement(geom)
-                st.pyplot(fig)
-                plt.close(fig)
-            except Exception:
-                pass
-    with d2:
-        if pile_d is not None:
-            try:
-                fig = draw_pile_section(pile_d)
-                st.pyplot(fig)
-                plt.close(fig)
-            except Exception:
-                pass
+    if not _DIAGRAMS_AVAILABLE:
+        st.warning(f"Diagrams unavailable: {_DIAG_IMPORT_ERROR}")
+    else:
+        d1, d2 = st.columns(2)
+        with d1:
+            if geom is not None:
+                try:
+                    fig = draw_pile_arrangement(geom)
+                    st.pyplot(fig)
+                    plt.close(fig)
+                except Exception as e:
+                    st.warning(f"Diagram error: {e}")
+        with d2:
+            if pile_d is not None:
+                try:
+                    fig = draw_pile_section(pile_d)
+                    st.pyplot(fig)
+                    plt.close(fig)
+                except Exception as e:
+                    st.warning(f"Diagram error: {e}")
 
-    if pile_d is not None:
-        interaction = safe_attr(pile_d, "interaction")
-        if interaction is not None:
-            try:
-                fig = draw_pm_diagram(
-                    interaction,
-                    safe_attr(pile_d, "P_applied", 0),
-                    safe_attr(pile_d, "M_applied", 0),
-                    "Pile P-M Interaction",
-                )
-                st.pyplot(fig)
-                plt.close(fig)
-            except Exception:
-                pass
+        if pile_d is not None:
+            interaction = safe_attr(pile_d, "interaction")
+            if interaction is not None:
+                try:
+                    fig = draw_pm_diagram(
+                        interaction,
+                        safe_attr(pile_d, "P_applied", 0),
+                        safe_attr(pile_d, "M_applied", 0),
+                        "Pile P-M Interaction",
+                    )
+                    st.pyplot(fig)
+                    plt.close(fig)
+                except Exception as e:
+                    st.warning(f"Diagram error: {e}")
 
 
 # ── Pile Cap tab ─────────────────────────────────────────────────────────────
@@ -472,12 +488,15 @@ def _render_pilecap_tab(results: dict) -> None:
     geom = results.get("geometry")
     if geom is not None:
         st.markdown("#### Punching Shear Perimeters")
-        try:
-            fig = draw_pilecap_punching(pc, geom)
-            st.pyplot(fig)
-            plt.close(fig)
-        except Exception as e:
-            st.warning(f"Diagram error: {e}")
+        if not _DIAGRAMS_AVAILABLE:
+            st.warning(f"Diagrams unavailable: {_DIAG_IMPORT_ERROR}")
+        else:
+            try:
+                fig = draw_pilecap_punching(pc, geom)
+                st.pyplot(fig)
+                plt.close(fig)
+            except Exception as e:
+                st.warning(f"Diagram error: {e}")
 
 
 # ── Loads tab ────────────────────────────────────────────────────────────────
